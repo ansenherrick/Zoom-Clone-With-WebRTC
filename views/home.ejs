@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Page</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+
+    #main-content {
+      text-align: center;
+    }
+
+    .dot {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background-color: red;
+      border-radius: 50%;
+      display: none;
+    }
+
+    #top-left { top: 5%; left: 5%; }
+    #top-right { top: 5%; right: 5%; }
+    #bottom-left { bottom: 5%; left: 5%; }
+    #bottom-right { bottom: 5%; right: 5%; }
+
+    #calibration-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      text-align: center;
+      display: none;
+    }
+
+    #webcam {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      width: 150px;
+      height: 100px;
+      border: 2px solid black;
+      border-radius: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="main-content">
+    <h1>Deep Fake Video Chat</h1>
+    <p>Enter a room ID to join an existing room or leave the field empty to create a new room.</p>
+    <input type="text" id="room-id" placeholder="Enter Room ID (optional)" />
+    <button id="join-room-button">Join Room</button>
+  </div>
+
+  <!-- Dots for gaze calibration -->
+  <div class="dot" id="top-left"></div>
+  <div class="dot" id="top-right"></div>
+  <div class="dot" id="bottom-left"></div>
+  <div class="dot" id="bottom-right"></div>
+
+  <!-- Calibration message -->
+  <div id="calibration-message">Please follow the dots on the screen.</div>
+
+  <!-- Webcam preview -->
+  <video id="webcam" autoplay muted></video>
+
+  <script>
+    document.getElementById('join-room-button').addEventListener('click', () => {
+      const roomId = document.getElementById('room-id').value.trim();
+      startCalibration(() => {
+        // After calibration, redirect to the appropriate room
+        if (roomId) {
+          window.location.href = `/${roomId}`;
+        } else {
+          window.location.href = '/join';
+        }
+      });
+    });
+
+    function startCalibration(callback) {
+        
+      //const webcam = document.getElementById('webcam');
+      const message = document.getElementById('calibration-message');
+      const dots = [
+        document.getElementById('top-left'),
+        document.getElementById('top-right'),
+        document.getElementById('bottom-left'),
+        document.getElementById('bottom-right'),
+      ];
+
+      let mediaRecorder;
+      let recordedChunks = [];
+      let currentDot = 0;
+
+      const mainContent = document.getElementById('main-content');
+      mainContent.style.display = 'none';
+
+      // Access the webcam
+      navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        .then((stream) => {
+
+          // Set up the MediaRecorder
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              recordedChunks.push(event.data);
+            }
+          };
+
+          mediaRecorder.onstop = () => {
+            // Save the recorded video
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'calibration-video.webm';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+          };
+
+          // Start recording
+          mediaRecorder.start();
+
+          // Start the calibration process
+          message.style.display = 'block';
+          showNextDot();
+        })
+        .catch((error) => {
+          console.error('Error accessing webcam:', error);
+          alert('Unable to access the webcam. Please check your permissions.');
+        });
+
+      function showNextDot() {
+        if (currentDot > 0) {
+          dots[currentDot - 1].style.display = 'none'; // Hide the previous dot
+        }
+        if (currentDot < dots.length) {
+          dots[currentDot].style.display = 'block'; // Show the current dot
+          currentDot++;
+          setTimeout(showNextDot, 2000); // Wait 2 seconds before moving to the next dot
+        } else {
+          // Calibration complete
+          dots[currentDot - 1].style.display = 'none'; // Hide the last dot
+          message.style.display = 'none'; // Hide the calibration message
+          webcam.style.display = 'none'; // Hide the webcam preview
+
+          // Stop recording
+          mediaRecorder.stop();
+
+          // Proceed to the room
+          callback();
+        }
+      }
+    }
+  </script>
+</body>
+</html>
