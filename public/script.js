@@ -15,7 +15,10 @@ let recordedChunks = [];
 
 // Requests access to user media
 navigator.mediaDevices.getUserMedia({
-  video: true,
+  video: {
+    width: { ideal: 1920 },
+    height: { ideal: 1080 }
+  },
   audio: true
 }).then(stream => {
   //const localVideo = document.getElementById('local-video');
