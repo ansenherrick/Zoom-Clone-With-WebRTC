@@ -18,9 +18,9 @@ navigator.mediaDevices.getUserMedia({
   video: true,
   audio: true
 }).then(stream => {
-  const localVideo = document.getElementById('local-video');
-  localVideo.srcObject = stream;
-  localVideo.play();
+  //const localVideo = document.getElementById('local-video');
+  //localVideo.srcObject = stream;
+  //localVideo.play();
 
   // Initialize MediaRecorder for recording webcam footage
   mediaRecorder = new MediaRecorder(stream);
